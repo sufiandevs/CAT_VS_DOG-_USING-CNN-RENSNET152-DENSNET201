@@ -15,9 +15,9 @@ class_names = ['cat', 'dog'] # Must match the class names used during training
 # Ensure these files are publicly shareable or accessible via a shared link.
 # To get a file ID: Upload your .h5 model to Google Drive, right-click, 'Get link', and copy the ID part from the URL.
 DRIVE_FILE_IDS = {
-    'simple_cnn': '1eiaSHApxdYxrm8okQxWzgTOSx62mYTst', # e.g., '1aBcDeFgHiJkLmNoPqRsTuVwXyZ0123'
-    'densenet': '1OCcUXJ0Kz6qB8Fy9GAFH6Rfm2DHBmGoN',
-    'resnet': '11J20MhOtA9J1KfFT_6NZls9ShC-p6kLr3',
+    'simple_cnn': '14di2iDCb6uiIwRpPP5wDwc9I4j9YIZgw', # e.g., '1aBcDeFgHiJkLmNoPqRsTuVwXyZ0123'
+    'densenet': '1ZcglayCHXWKGNowdSys6Jq6eM0kQ3Xf9',
+    'resnet': '1Q8kzfu9r0tZMk6jug4COXC6CQLs1BZ6z',
 }
 
 # Directory to temporarily store downloaded models
