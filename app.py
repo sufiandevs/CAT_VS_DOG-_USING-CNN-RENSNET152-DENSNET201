@@ -17,7 +17,7 @@ class_names = ['cat', 'dog'] # Must match the class names used during training
 DRIVE_FILE_IDS = {
     'simple_cnn': '1eiaSHApxdYxrm8okQxWzgTOSx62mYTst', # e.g., '1aBcDeFgHiJkLmNoPqRsTuVwXyZ0123'
     'densenet': '1OCcUXJ0Kz6qB8Fy9GAFH6Rfm2DHBmGoN',
-    'resnet': '1J20MhOtA9J1KfFT_6NZls9ShC-p6kLr3',
+    'resnet': '11J20MhOtA9J1KfFT_6NZls9ShC-p6kLr3',
 }
 
 # Directory to temporarily store downloaded models
