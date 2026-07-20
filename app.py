@@ -38,7 +38,8 @@ def load_model_from_drive(model_name_key, local_filename):
         st.info(f"Downloading {local_filename} from Google Drive. This may take a moment...")
         try:
             # Use gdown to download the file
-            gdown.download(f'https://drive.google.com/uc?id={file_id}', local_path, quiet=True, fuzzy=True)
+            # Removed fuzzy=True as it might not be supported by older gdown versions
+            gdown.download(f'https://drive.google.com/uc?id={file_id}', local_path, quiet=True)
             st.success(f"Downloaded {local_filename}.")
         except Exception as e:
             st.error(f"Error downloading {local_filename} from Google Drive. Check the file ID and permissions: {e}")
