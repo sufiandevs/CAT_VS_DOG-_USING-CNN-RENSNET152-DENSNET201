@@ -1,48 +1,4 @@
-# === AGGRESSIVE MONKEY-PATCH ===
-import sys
 
-def _patch_all_dense_layers():
-    """Patch ALL Dense layer classes across keras and tf.keras"""
-    targets = []
-    
-    # Try to find all possible Dense layer locations
-    try:
-        import keras
-        targets.append(('keras.layers', keras.layers.Dense))
-    except: pass
-    
-    try:
-        import keras.src.layers.core.dense as _kd
-        targets.append(('keras.src.layers.core.dense.Dense', _kd.Dense))
-    except: pass
-    
-    try:
-        import tensorflow as tf
-        targets.append(('tf.keras.layers', tf.keras.layers.Dense))
-    except: pass
-    
-    try:
-        import tensorflow.python.keras.layers as _tk
-        targets.append(('tf.python.keras.layers', _tk.Dense))
-    except: pass
-    
-    for name, DenseClass in targets:
-        original = DenseClass.from_config
-        
-        @classmethod
-        def _safe_from_config(cls, config, *args, **kwargs):
-            if isinstance(config, dict):
-                config.pop('quantization_config', None)
-                config.pop('lora_rank', None)
-            return original(config, *args, **kwargs)
-        
-        DenseClass.from_config = _safe_from_config
-        print(f"✅ Patched: {name}")
-
-_patch_all_dense_layers()
-
-
-# ... rest of your code
 
 import streamlit as st
 import tensorflow as tf
@@ -61,9 +17,9 @@ class_names = ['cat', 'dog'] # Must match the class names used during training
 # Ensure these files are publicly shareable or accessible via a shared link.
 # To get a file ID: Upload your .keras model to Google Drive, right-click, 'Get link', and copy the ID part from the URL.
 DRIVE_FILE_IDS = {
-    'simple_cnn': '10_YJo2G4m_K04pXTawmX0MpuOVuX4MMf', # e.g., '1aBcDeFgHiJkLmNoPqRsTuVwXyZ0123'
-    'densenet': '13_toN-2F7hJiTQBnDSl7KmRlqsDsToQb',
-    'resnet': '1oaHXm0DQqucL8EkWqgL55XqNocwxWY5x',
+    'simple_cnn': '18e6SqmW0ivF9wzKvp-vHH7v60dkFc1Pf', # e.g., '1aBcDeFgHiJkLmNoPqRsTuVwXyZ0123'
+    'densenet': '1J2o60_4nPvlhdN5H5yRKTGdfiBhcEisp',
+    'resnet': '18gFrRbQA4NYngKrJtmprA3Dn7TOkmjdj',
 }
 
 # Directory to temporarily store downloaded models
