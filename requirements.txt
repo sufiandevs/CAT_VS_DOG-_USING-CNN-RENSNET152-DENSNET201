@@ -5,3 +5,4 @@ Pillow
 gdown
 matplotlib
 joblib
+seaborn
