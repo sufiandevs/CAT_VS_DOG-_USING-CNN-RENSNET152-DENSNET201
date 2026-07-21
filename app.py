@@ -1,7 +1,3 @@
-import os
-os.environ["TF_USE_LEGACY_KERAS"] = "1"  # Forces Keras 2.x compatibility mode
-
-
 import streamlit as st
 import tensorflow as tf
 from PIL import Image
