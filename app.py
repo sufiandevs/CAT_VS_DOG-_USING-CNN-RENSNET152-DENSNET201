@@ -13,7 +13,7 @@ class_names = ['cat', 'dog']
 # --- Google Drive File IDs (PASTE YOUR NEW .h5 IDs HERE) ---
 DRIVE_FILE_IDS = {
     'simple_cnn': '18e6SqmW0ivF9wzKvp-vHH7v60dkFc1Pf',
-    'densenet': '1J2o60_4nPvlhdN5H5yRKTGdfiBhcEispE',
+    'densenet': '1J2o60_4nPvlhdN5H5yRKTGdfiBhcEisp',
     'resnet': '18gFrRbQA4NYngKrJtmprA3Dn7TOkmjdj',
 }
 
