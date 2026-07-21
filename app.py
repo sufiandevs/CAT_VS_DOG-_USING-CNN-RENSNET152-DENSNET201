@@ -331,7 +331,7 @@ def plot_training_history_st(history_dict, model_name):
     axes[0].set_title(f'{model_name} Accuracy', color='white', fontweight='bold')
     axes[0].set_xlabel('Epoch', color='white')
     axes[0].set_ylabel('Accuracy', color='white')
-    axes[0].legend(facecolor='rgba(0,0,0,0.3)', edgecolor='white', labelcolor='white')
+    axes[0].legend(loc='best', framealpha=0.3, edgecolor='white', labelcolor='white')
     axes[0].tick_params(colors='white')
     axes[0].grid(True, alpha=0.3)
 
@@ -341,7 +341,7 @@ def plot_training_history_st(history_dict, model_name):
     axes[1].set_title(f'{model_name} Loss', color='white', fontweight='bold')
     axes[1].set_xlabel('Epoch', color='white')
     axes[1].set_ylabel('Loss', color='white')
-    axes[1].legend(facecolor='rgba(0,0,0,0.3)', edgecolor='white', labelcolor='white')
+    axes[1].legend(loc='best', framealpha=0.3, edgecolor='white', labelcolor='white')
     axes[1].tick_params(colors='white')
     axes[1].grid(True, alpha=0.3)
 
