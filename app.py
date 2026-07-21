@@ -12,9 +12,9 @@ class_names = ['cat', 'dog']
 
 # --- Google Drive File IDs (PASTE YOUR NEW .h5 IDs HERE) ---
 DRIVE_FILE_IDS = {
-    'simple_cnn': 'PASTE_SIMPLE_CNN_H5_ID_HERE',
-    'densenet': 'PASTE_DENSENET_H5_ID_HERE',
-    'resnet': 'PASTE_RESNET_H5_ID_HERE',
+    'simple_cnn': '18e6SqmW0ivF9wzKvp-vHH7v60dkFc1Pf',
+    'densenet': '1J2o60_4nPvlhdN5H5yRKTGdfiBhcEispE',
+    'resnet': '18gFrRbQA4NYngKrJtmprA3Dn7TOkmjdj',
 }
 
 TEMP_MODEL_DIR = 'temp_models'
