@@ -12,7 +12,7 @@ IMG_HEIGHT = 224
 IMG_WIDTH = 224
 class_names = ['cat', 'dog']
 
-# --- Google Drive File IDs (PASTE YOUR .weights.h5 IDs HERE) ---
+# --- Google Drive File IDs ---
 DRIVE_FILE_IDS = {
     'simple_cnn': '1g0yR1gNp6ru_YeJSXjOlW2n5H2gouM9p',
     'densenet': '1w0pXzFVALNRPb3Up79soYJ0EKddaV60S',
@@ -22,10 +22,10 @@ DRIVE_FILE_IDS = {
 TEMP_MODEL_DIR = 'temp_models'
 os.makedirs(TEMP_MODEL_DIR, exist_ok=True)
 
-# --- Build Models from Scratch (No loading .keras or .h5 models) ---
+# --- Build Models from Scratch ---
 
 def build_simple_cnn():
-    """Rebuild your Simple CNN architecture exactly as trained"""
+    """Rebuild Simple CNN architecture"""
     model = tf.keras.Sequential([
         layers.Input(shape=(224, 224, 3)),
         layers.Conv2D(32, (3, 3), activation='relu'),
@@ -42,7 +42,7 @@ def build_simple_cnn():
     return model
 
 def build_densenet():
-    """Rebuild DenseNet201 architecture exactly as trained"""
+    """Rebuild DenseNet201 architecture"""
     base_model = DenseNet201(weights=None, include_top=False, input_shape=(224, 224, 3))
     x = base_model.output
     x = layers.GlobalAveragePooling2D()(x)
@@ -52,7 +52,7 @@ def build_densenet():
     return model
 
 def build_resnet():
-    """Rebuild ResNet152 architecture exactly as trained"""
+    """Rebuild ResNet152 architecture"""
     base_model = ResNet152(weights=None, include_top=False, input_shape=(224, 224, 3))
     x = base_model.output
     x = layers.GlobalAveragePooling2D()(x)
@@ -61,17 +61,12 @@ def build_resnet():
     model = Model(inputs=base_model.input, outputs=predictions)
     return model
 
-# --- Download and Load Weights ---
+# --- Download Helper ---
 
-@st.cache_resource
-def load_model_weights(model_name_key, build_func, weights_filename):
-    file_id = DRIVE_FILE_IDS.get(model_name_key)
-    if not file_id or file_id.startswith('PASTE'):
-        st.error(f"Google Drive File ID for {model_name_key} is not configured.")
-        return None
-
+def _download_weights(file_id, weights_filename):
+    """Download weights from Google Drive"""
     weights_path = os.path.join(TEMP_MODEL_DIR, weights_filename)
-
+    
     if not os.path.exists(weights_path):
         st.info(f"Downloading {weights_filename}...")
         try:
@@ -80,27 +75,54 @@ def load_model_weights(model_name_key, build_func, weights_filename):
         except Exception as e:
             st.error(f"Error downloading {weights_filename}: {e}")
             return None
+    return weights_path
 
+# --- Load Models (cached, no function params) ---
+
+@st.cache_resource
+def load_simple_cnn_model():
+    file_id = DRIVE_FILE_IDS.get('simple_cnn')
+    weights_path = _download_weights(file_id, 'simple_cnn_weights.weights.h5')
+    if not weights_path:
+        return None
     try:
-        # Build fresh model
-        model = build_func()
-        # Load weights
+        model = build_simple_cnn()
         model.load_weights(weights_path)
-        # Compile (needed for predict)
         model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
         return model
     except Exception as e:
-        st.error(f"Error loading {weights_filename}: {e}")
+        st.error(f"Error loading simple_cnn: {e}")
         return None
 
-def load_simple_cnn_model():
-    return load_model_weights('simple_cnn', build_simple_cnn, 'simple_cnn_weights.weights.h5')
-
+@st.cache_resource
 def load_densenet_model():
-    return load_model_weights('densenet', build_densenet, 'densenet201_weights.weights.h5')
+    file_id = DRIVE_FILE_IDS.get('densenet')
+    weights_path = _download_weights(file_id, 'densenet201_weights.weights.h5')
+    if not weights_path:
+        return None
+    try:
+        model = build_densenet()
+        model.load_weights(weights_path)
+        model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+        return model
+    except Exception as e:
+        st.error(f"Error loading densenet: {e}")
+        return None
 
+@st.cache_resource
 def load_resnet_model():
-    return load_model_weights('resnet', build_resnet, 'resnet152_weights.weights.h5')
+    file_id = DRIVE_FILE_IDS.get('resnet')
+    weights_path = _download_weights(file_id, 'resnet152_weights.weights.h5')
+    if not weights_path:
+        return None
+    try:
+        model = build_resnet()
+        model.load_weights(weights_path)
+        model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+        return model
+    except Exception as e:
+        st.error(f"Error loading resnet: {e}")
+        return None
 
 simple_cnn_model = load_simple_cnn_model()
 densenet_model = load_densenet_model()
