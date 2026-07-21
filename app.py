@@ -178,8 +178,9 @@ if page == 'Predict Image':
         image_batch = np.expand_dims(image_array, axis=0)
 
         st.subheader('Select a Model for Prediction:')
-        model_choice = st.radio(
-            "",
+        # CHANGED: st.radio → st.selectbox (dropdown)
+        model_choice = st.selectbox(
+            "Choose a model",
             ('Simple CNN', 'DenseNet201', 'ResNet152'),
             index=0
         )
