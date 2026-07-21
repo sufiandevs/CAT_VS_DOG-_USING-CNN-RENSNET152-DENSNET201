@@ -61,7 +61,7 @@ def build_resnet():
     model = Model(inputs=base_model.input, outputs=predictions)
     return model
 
-# --- Download Helper ---
+# --- Download Helper (NOT cached) ---
 
 def _download_weights(file_id, weights_filename):
     """Download weights from Google Drive"""
@@ -77,7 +77,7 @@ def _download_weights(file_id, weights_filename):
             return None
     return weights_path
 
-# --- Load Models (cached, no function params) ---
+# --- Load Models (cached individually, NO function params) ---
 
 @st.cache_resource
 def load_simple_cnn_model():
