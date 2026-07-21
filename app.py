@@ -4,20 +4,17 @@ from PIL import Image
 import numpy as np
 import os
 import gdown
-import joblib # Import joblib for loading .pkl models and data
-import pandas as pd # For displaying comparison table
-import matplotlib.pyplot as plt # For plotting training history and confusion matrices
-import seaborn as sns # For confusion matrix visualization
+import joblib
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 # --- Configuration --- #
-IMG_HEIGHT = 224 # Must match the height used during training
-IMG_WIDTH = 224  # Must match the width used during training
-class_names = ['cat', 'dog'] # Must match the class names used during training
+IMG_HEIGHT = 224
+IMG_WIDTH = 224
+class_names = ['cat', 'dog']
 
-# --- Google Drive File IDs for Models and Evaluation Artifacts --- #
-# IMPORTANT: Replace these with your actual Google Drive file IDs.
-# Ensure these files are publicly shareable or accessible via a shared link.
-# To get a file ID: Upload your .pkl file to Google Drive, right-click, 'Get link', and copy the ID part from the URL.
+# --- Google Drive File IDs ---
 DRIVE_FILE_IDS = {
     'simple_cnn_model_pkl': '14sMJtuVr3TNBOMOO7QZA08rj1HnDgRKe',
     'densenet_model_pkl': '17HI_5U2X0pYlIwp7zjIvCprugN00gAR2',
@@ -27,40 +24,35 @@ DRIVE_FILE_IDS = {
     'confusion_matrices_data_pkl': '13syGZjwL92vqQ64uMYgYR2eItKz7X-80',
 }
 
-# Directory to temporarily store downloaded models and data
 TEMP_DIR = 'streamlit_temp_data'
 os.makedirs(TEMP_DIR, exist_ok=True)
 
 # --- Helper function to download from Google Drive --- #
-@st.cache_resource # Use st.cache_resource for heavy objects like models
+@st.cache_resource
 def download_from_drive(file_key, local_filename):
     file_id = DRIVE_FILE_IDS.get(file_key)
     if not file_id or file_id.startswith('YOUR_'):
-        st.error(f"Google Drive File ID for {file_key} is not configured or is a placeholder. Please update DRIVE_FILE_IDS.")
+        st.error(f"Google Drive File ID for {file_key} is not configured. Please update DRIVE_FILE_IDS.")
         return None
 
     local_path = os.path.join(TEMP_DIR, local_filename)
 
     if not os.path.exists(local_path):
-        st.info(f"Downloading {local_filename} from Google Drive...")
         try:
             gdown.download(f'https://drive.google.com/uc?id={file_id}', local_path, quiet=True)
-            st.success(f"Downloaded {local_filename}.")
         except Exception as e:
-            st.error(f"Error downloading {local_filename} from Google Drive. Check the file ID and permissions: {e}")
+            st.error(f"Error downloading {local_filename}: {e}")
             return None
-    else:
-        st.info(f"{local_filename} already exists locally. Skipping download.")
     return local_path
 
-# --- Load Models (using joblib for .pkl) --- #
+# --- Load Models --- #
 def load_pkl_model(model_key, filename):
     local_path = download_from_drive(model_key, filename)
     if local_path:
         try:
             return joblib.load(local_path)
         except Exception as e:
-            st.error(f"Error loading {filename} (pkl): {e}")
+            st.error(f"Error loading {filename}: {e}")
     return None
 
 simple_cnn_model = load_pkl_model('simple_cnn_model_pkl', 'simple_cnn_model.pkl')
@@ -102,7 +94,7 @@ results_df = load_results_df()
 training_histories = load_histories()
 confusion_matrices_data = load_confusion_matrices_data()
 
-# --- Preprocessing Functions (must match training preprocessing) --- #
+# --- Preprocessing Functions --- #
 def preprocess_simple_cnn(image_array):
     return tf.cast(image_array, tf.float32) / 255.0
 
@@ -114,7 +106,7 @@ def preprocess_resnet(image_array):
     image_array = tf.cast(image_array, tf.float32)
     return tf.keras.applications.resnet.preprocess_input(image_array)
 
-# --- Plotting Functions for Streamlit --- #
+# --- Plotting Functions --- #
 def plot_training_history_st(history_dict, model_name):
     if history_dict is None:
         st.warning(f"No training history available for {model_name}.")
@@ -125,7 +117,6 @@ def plot_training_history_st(history_dict, model_name):
 
     fig, axes = plt.subplots(1, 2, figsize=(12, 5))
 
-    # Plot Training & Validation Accuracy
     axes[0].plot(epochs, hist_df['accuracy'], label='Training Accuracy')
     if 'val_accuracy' in hist_df.columns:
         axes[0].plot(epochs, hist_df['val_accuracy'], label='Validation Accuracy')
@@ -135,7 +126,6 @@ def plot_training_history_st(history_dict, model_name):
     axes[0].legend()
     axes[0].grid(True)
 
-    # Plot Training & Validation Loss
     axes[1].plot(epochs, hist_df['loss'], label='Training Loss')
     if 'val_loss' in hist_df.columns:
         axes[1].plot(epochs, hist_df['val_loss'], label='Validation Loss')
@@ -166,7 +156,6 @@ def plot_confusion_matrix_st(cm, class_names, model_name):
 st.set_page_config(layout="wide")
 st.title('Cat vs Dog Classifier & Model Analysis')
 
-# Sidebar for navigation
 st.sidebar.header('Navigation')
 page = st.sidebar.radio(
     'Go to',
@@ -177,26 +166,22 @@ if page == 'Predict Image':
     st.header('Predict an Image')
     st.write('Upload an image of a cat or a dog to get a prediction using different CNN models.')
 
-    # File uploader
     uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
 
     if uploaded_file is not None:
-        # Display the uploaded image
         image = Image.open(uploaded_file).convert('RGB')
         st.image(image, caption='Uploaded Image', use_column_width=True)
         st.write("")
 
-        # Resize image for models
         image_resized = image.resize((IMG_WIDTH, IMG_HEIGHT))
         image_array = np.asarray(image_resized)
-        # Add batch dimension
         image_batch = np.expand_dims(image_array, axis=0)
 
         st.subheader('Select a Model for Prediction:')
         model_choice = st.radio(
             "",
             ('Simple CNN', 'DenseNet201', 'ResNet152'),
-            index=0 # Default to Simple CNN
+            index=0
         )
 
         model_to_use = None
@@ -230,7 +215,7 @@ if page == 'Predict Image':
             else:
                 st.warning("Preprocessing function not defined for the selected model.")
         else:
-            st.warning(f"The {model_choice} model could not be loaded. Please check the Google Drive ID and ensure the model was saved correctly.")
+            st.warning(f"The {model_choice} model could not be loaded. Please check the Google Drive ID.")
     else:
         st.info("Please upload an image to make a prediction.")
 
@@ -267,4 +252,3 @@ elif page == 'Confusion Matrices':
                 st.warning(f"Could not plot confusion matrix for {model_name}.")
     else:
         st.warning("Confusion matrices data could not be loaded.")
-
