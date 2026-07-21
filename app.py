@@ -1,3 +1,52 @@
+# === FIX: Must be before ANY tensorflow import ===
+import sys
+
+def _patch_keras_3_to_2():
+    """Strip Keras 3.x fields that break Keras 2.x loading"""
+    try:
+        # Patch keras.src.layers.layer.Layer (Keras 3 internal path)
+        from keras.src.layers.layer import Layer
+        _orig_from_config = Layer.from_config
+        
+        @classmethod
+        def _fixed_from_config(cls, config):
+            if isinstance(config, dict):
+                config.pop('quantization_config', None)
+                config.pop('lora_rank', None)
+                # Also fix dtype if it's a dict
+                dtype = config.get('dtype')
+                if isinstance(dtype, dict) and dtype.get('class_name') == 'DTypePolicy':
+                    config['dtype'] = dtype.get('config', {}).get('name', 'float32')
+            return _orig_from_config(config)
+        
+        Layer.from_config = _fixed_from_config
+        print("✅ Patch applied: keras.src.layers.layer.Layer")
+    except Exception as e:
+        print(f"Patch attempt 1: {e}")
+    
+    try:
+        # Also patch tf.keras.layers.Layer as fallback
+        import tensorflow as tf
+        _orig_tf_from_config = tf.keras.layers.Layer.from_config
+        
+        @classmethod
+        def _fixed_tf_from_config(cls, config):
+            if isinstance(config, dict):
+                config.pop('quantization_config', None)
+                config.pop('lora_rank', None)
+                dtype = config.get('dtype')
+                if isinstance(dtype, dict) and dtype.get('class_name') == 'DTypePolicy':
+                    config['dtype'] = dtype.get('config', {}).get('name', 'float32')
+            return _orig_tf_from_config(config)
+        
+        tf.keras.layers.Layer.from_config = _fixed_tf_from_config
+        print("✅ Patch applied: tf.keras.layers.Layer")
+    except Exception as e:
+        print(f"Patch attempt 2: {e}")
+
+_patch_keras_3_to_2()
+# === END FIX ===
+# ... rest of your code exactly as before
 import streamlit as st
 import tensorflow as tf
 from PIL import Image
