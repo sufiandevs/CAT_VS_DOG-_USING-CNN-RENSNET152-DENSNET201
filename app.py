@@ -1,134 +1,108 @@
 import streamlit as st
 import tensorflow as tf
-from tensorflow.keras import layers, Model
-from tensorflow.keras.applications import DenseNet201, ResNet152
 from PIL import Image
 import numpy as np
 import os
 import gdown
+import joblib # Import joblib for loading .pkl models and data
+import pandas as pd # For displaying comparison table
+import matplotlib.pyplot as plt # For plotting training history and confusion matrices
+import seaborn as sns # For confusion matrix visualization
 
-# --- Configuration ---
-IMG_HEIGHT = 224
-IMG_WIDTH = 224
-class_names = ['cat', 'dog']
+# --- Configuration --- #
+IMG_HEIGHT = 224 # Must match the height used during training
+IMG_WIDTH = 224  # Must match the width used during training
+class_names = ['cat', 'dog'] # Must match the class names used during training
 
-# --- Google Drive File IDs ---
+# --- Google Drive File IDs for Models and Evaluation Artifacts --- #
+# IMPORTANT: Replace these with your actual Google Drive file IDs.
+# Ensure these files are publicly shareable or accessible via a shared link.
+# To get a file ID: Upload your .pkl file to Google Drive, right-click, 'Get link', and copy the ID part from the URL.
 DRIVE_FILE_IDS = {
-    'simple_cnn': '1g0yR1gNp6ru_YeJSXjOlW2n5H2gouM9p',
-    'densenet': '1w0pXzFVALNRPb3Up79soYJ0EKddaV60S',
-    'resnet': '1QlLMsz4hIpiu5T4Tu3CZCaPG_yncfTAy',
+    'simple_cnn_model_pkl': '14sMJtuVr3TNBOMOO7QZA08rj1HnDgRKe',
+    'densenet_model_pkl': '17HI_5U2X0pYlIwp7zjIvCprugN00gAR2',
+    'resnet_model_pkl': '1IYzFu_g3eF7l-B9-e8yyCHGEgnijjD78',
+    'model_comparison_csv': '1kvvJKXNJ76JOkiKGM4GGLKHqYiWkXm6i',
+    'training_histories_pkl': '1eXmns8MI3syNHjND1zcnn8UzuNPXrHaK',
+    'confusion_matrices_data_pkl': '13syGZjwL92vqQ64uMYgYR2eItKz7X-80',
 }
 
-TEMP_MODEL_DIR = 'temp_models'
-os.makedirs(TEMP_MODEL_DIR, exist_ok=True)
+# Directory to temporarily store downloaded models and data
+TEMP_DIR = 'streamlit_temp_data'
+os.makedirs(TEMP_DIR, exist_ok=True)
 
-# --- Build Models from Scratch ---
+# --- Helper function to download from Google Drive --- #
+@st.cache_resource # Use st.cache_resource for heavy objects like models
+def download_from_drive(file_key, local_filename):
+    file_id = DRIVE_FILE_IDS.get(file_key)
+    if not file_id or file_id.startswith('YOUR_'):
+        st.error(f"Google Drive File ID for {file_key} is not configured or is a placeholder. Please update DRIVE_FILE_IDS.")
+        return None
 
-def build_simple_cnn():
-    """Rebuild Simple CNN architecture"""
-    model = tf.keras.Sequential([
-        layers.Input(shape=(224, 224, 3)),
-        layers.Conv2D(32, (3, 3), activation='relu'),
-        layers.MaxPooling2D((2, 2)),
-        layers.Conv2D(64, (3, 3), activation='relu'),
-        layers.MaxPooling2D((2, 2)),
-        layers.Conv2D(128, (3, 3), activation='relu'),
-        layers.MaxPooling2D((2, 2)),
-        layers.Flatten(),
-        layers.Dense(128, activation='relu'),
-        layers.Dropout(0.5),
-        layers.Dense(1, activation='sigmoid')
-    ])
-    return model
+    local_path = os.path.join(TEMP_DIR, local_filename)
 
-def build_densenet():
-    """Rebuild DenseNet201 architecture"""
-    base_model = DenseNet201(weights=None, include_top=False, input_shape=(224, 224, 3))
-    x = base_model.output
-    x = layers.GlobalAveragePooling2D()(x)
-    x = layers.Dense(128, activation='relu')(x)
-    predictions = layers.Dense(1, activation='sigmoid')(x)
-    model = Model(inputs=base_model.input, outputs=predictions)
-    return model
-
-def build_resnet():
-    """Rebuild ResNet152 architecture"""
-    base_model = ResNet152(weights=None, include_top=False, input_shape=(224, 224, 3))
-    x = base_model.output
-    x = layers.GlobalAveragePooling2D()(x)
-    x = layers.Dense(128, activation='relu')(x)
-    predictions = layers.Dense(1, activation='sigmoid')(x)
-    model = Model(inputs=base_model.input, outputs=predictions)
-    return model
-
-# --- Download Helper (NOT cached) ---
-
-def _download_weights(file_id, weights_filename):
-    """Download weights from Google Drive"""
-    weights_path = os.path.join(TEMP_MODEL_DIR, weights_filename)
-    
-    if not os.path.exists(weights_path):
-        st.info(f"Downloading {weights_filename}...")
+    if not os.path.exists(local_path):
+        st.info(f"Downloading {local_filename} from Google Drive...")
         try:
-            gdown.download(f'https://drive.google.com/uc?id={file_id}', weights_path, quiet=True)
-            st.success(f"Downloaded {weights_filename}.")
+            gdown.download(f'https://drive.google.com/uc?id={file_id}', local_path, quiet=True)
+            st.success(f"Downloaded {local_filename}.")
         except Exception as e:
-            st.error(f"Error downloading {weights_filename}: {e}")
+            st.error(f"Error downloading {local_filename} from Google Drive. Check the file ID and permissions: {e}")
             return None
-    return weights_path
+    else:
+        st.info(f"{local_filename} already exists locally. Skipping download.")
+    return local_path
 
-# --- Load Models (cached individually, NO function params) ---
+# --- Load Models (using joblib for .pkl) --- #
+def load_pkl_model(model_key, filename):
+    local_path = download_from_drive(model_key, filename)
+    if local_path:
+        try:
+            return joblib.load(local_path)
+        except Exception as e:
+            st.error(f"Error loading {filename} (pkl): {e}")
+    return None
 
-@st.cache_resource
-def load_simple_cnn_model():
-    file_id = DRIVE_FILE_IDS.get('simple_cnn')
-    weights_path = _download_weights(file_id, 'simple_cnn_weights.weights.h5')
-    if not weights_path:
-        return None
-    try:
-        model = build_simple_cnn()
-        model.load_weights(weights_path)
-        model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
-        return model
-    except Exception as e:
-        st.error(f"Error loading simple_cnn: {e}")
-        return None
+simple_cnn_model = load_pkl_model('simple_cnn_model_pkl', 'simple_cnn_model.pkl')
+densenet_model = load_pkl_model('densenet_model_pkl', 'densenet201_model.pkl')
+resnet_model = load_pkl_model('resnet_model_pkl', 'resnet152_model.pkl')
 
-@st.cache_resource
-def load_densenet_model():
-    file_id = DRIVE_FILE_IDS.get('densenet')
-    weights_path = _download_weights(file_id, 'densenet201_weights.weights.h5')
-    if not weights_path:
-        return None
-    try:
-        model = build_densenet()
-        model.load_weights(weights_path)
-        model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
-        return model
-    except Exception as e:
-        st.error(f"Error loading densenet: {e}")
-        return None
+# --- Load Evaluation Artifacts --- #
+@st.cache_data
+def load_results_df():
+    local_path = download_from_drive('model_comparison_csv', 'model_comparison.csv')
+    if local_path:
+        try:
+            return pd.read_csv(local_path)
+        except Exception as e:
+            st.error(f"Error loading model_comparison.csv: {e}")
+    return None
 
-@st.cache_resource
-def load_resnet_model():
-    file_id = DRIVE_FILE_IDS.get('resnet')
-    weights_path = _download_weights(file_id, 'resnet152_weights.weights.h5')
-    if not weights_path:
-        return None
-    try:
-        model = build_resnet()
-        model.load_weights(weights_path)
-        model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
-        return model
-    except Exception as e:
-        st.error(f"Error loading resnet: {e}")
-        return None
+@st.cache_data
+def load_histories():
+    local_path = download_from_drive('training_histories_pkl', 'training_histories.pkl')
+    if local_path:
+        try:
+            return joblib.load(local_path)
+        except Exception as e:
+            st.error(f"Error loading training_histories.pkl: {e}")
+    return None
 
-simple_cnn_model = load_simple_cnn_model()
-densenet_model = load_densenet_model()
-resnet_model = load_resnet_model()
+@st.cache_data
+def load_confusion_matrices_data():
+    local_path = download_from_drive('confusion_matrices_data_pkl', 'confusion_matrices_data.pkl')
+    if local_path:
+        try:
+            return joblib.load(local_path)
+        except Exception as e:
+            st.error(f"Error loading confusion_matrices_data.pkl: {e}")
+    return None
 
-# --- Preprocessing ---
+results_df = load_results_df()
+training_histories = load_histories()
+confusion_matrices_data = load_confusion_matrices_data()
+
+# --- Preprocessing Functions (must match training preprocessing) --- #
 def preprocess_simple_cnn(image_array):
     return tf.cast(image_array, tf.float32) / 255.0
 
@@ -140,45 +114,157 @@ def preprocess_resnet(image_array):
     image_array = tf.cast(image_array, tf.float32)
     return tf.keras.applications.resnet.preprocess_input(image_array)
 
-# --- Streamlit UI ---
-st.title('Cat vs Dog Classifier')
-st.write('Upload an image of a cat or a dog.')
+# --- Plotting Functions for Streamlit --- #
+def plot_training_history_st(history_dict, model_name):
+    if history_dict is None:
+        st.warning(f"No training history available for {model_name}.")
+        return None
 
-uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
+    hist_df = pd.DataFrame(history_dict)
+    epochs = hist_df.index + 1
 
-if uploaded_file is not None:
-    image = Image.open(uploaded_file).convert('RGB')
-    st.image(image, caption='Uploaded Image', use_container_width=True)
-    st.write("")
+    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
 
-    image_resized = image.resize((IMG_WIDTH, IMG_HEIGHT))
-    image_array = np.asarray(image_resized)
-    image_batch = np.expand_dims(image_array, axis=0)
+    # Plot Training & Validation Accuracy
+    axes[0].plot(epochs, hist_df['accuracy'], label='Training Accuracy')
+    if 'val_accuracy' in hist_df.columns:
+        axes[0].plot(epochs, hist_df['val_accuracy'], label='Validation Accuracy')
+    axes[0].set_title(f'{model_name} Training and Validation Accuracy')
+    axes[0].set_xlabel('Epoch')
+    axes[0].set_ylabel('Accuracy')
+    axes[0].legend()
+    axes[0].grid(True)
 
-    st.subheader('Select a Model:')
-    model_choice = st.radio("", ('Simple CNN', 'DenseNet201', 'ResNet152'), index=0)
+    # Plot Training & Validation Loss
+    axes[1].plot(epochs, hist_df['loss'], label='Training Loss')
+    if 'val_loss' in hist_df.columns:
+        axes[1].plot(epochs, hist_df['val_loss'], label='Validation Loss')
+    axes[1].set_title(f'{model_name} Training and Validation Loss')
+    axes[1].set_xlabel('Epoch')
+    axes[1].set_ylabel('Loss')
+    axes[1].legend()
+    axes[1].grid(True)
 
-    model_to_use = None
-    preprocess_func = None
-    model_name = ""
+    plt.tight_layout()
+    return fig
 
-    if model_choice == 'Simple CNN':
-        model_to_use, preprocess_func, model_name = simple_cnn_model, preprocess_simple_cnn, 'Simple CNN'
-    elif model_choice == 'DenseNet201':
-        model_to_use, preprocess_func, model_name = densenet_model, preprocess_densenet, 'DenseNet201'
-    elif model_choice == 'ResNet152':
-        model_to_use, preprocess_func, model_name = resnet_model, preprocess_resnet, 'ResNet152'
+def plot_confusion_matrix_st(cm, class_names, model_name):
+    if cm is None:
+        st.warning(f"No confusion matrix data available for {model_name}.")
+        return None
 
-    if model_to_use and preprocess_func:
-        processed_image_batch = preprocess_func(image_batch)
-        prediction = model_to_use.predict(processed_image_batch)
-        predicted_class_index = (prediction > 0.5).astype(int)[0][0]
-        predicted_class = class_names[predicted_class_index]
-        confidence = prediction[0][0] if predicted_class_index == 1 else (1 - prediction[0][0])
+    fig, ax = plt.subplots(figsize=(6, 5))
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues',
+                xticklabels=class_names, yticklabels=class_names, ax=ax)
+    ax.set_title(f'Confusion Matrix for {model_name}')
+    ax.set_xlabel('Predicted Label')
+    ax.set_ylabel('True Label')
+    plt.tight_layout()
+    return fig
 
-        st.write(f'### Prediction using {model_name}:')
-        st.success(f'The image is a **{predicted_class.upper()}** with {confidence:.2%} confidence.')
+# --- Streamlit UI --- #
+st.set_page_config(layout="wide")
+st.title('Cat vs Dog Classifier & Model Analysis')
+
+# Sidebar for navigation
+st.sidebar.header('Navigation')
+page = st.sidebar.radio(
+    'Go to',
+    ['Predict Image', 'Model Comparison', 'Training History', 'Confusion Matrices']
+)
+
+if page == 'Predict Image':
+    st.header('Predict an Image')
+    st.write('Upload an image of a cat or a dog to get a prediction using different CNN models.')
+
+    # File uploader
+    uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
+
+    if uploaded_file is not None:
+        # Display the uploaded image
+        image = Image.open(uploaded_file).convert('RGB')
+        st.image(image, caption='Uploaded Image', use_column_width=True)
+        st.write("")
+
+        # Resize image for models
+        image_resized = image.resize((IMG_WIDTH, IMG_HEIGHT))
+        image_array = np.asarray(image_resized)
+        # Add batch dimension
+        image_batch = np.expand_dims(image_array, axis=0)
+
+        st.subheader('Select a Model for Prediction:')
+        model_choice = st.radio(
+            "",
+            ('Simple CNN', 'DenseNet201', 'ResNet152'),
+            index=0 # Default to Simple CNN
+        )
+
+        model_to_use = None
+        preprocess_func = None
+        model_name = ""
+
+        if model_choice == 'Simple CNN':
+            model_to_use = simple_cnn_model
+            preprocess_func = preprocess_simple_cnn
+            model_name = 'Simple CNN'
+        elif model_choice == 'DenseNet201':
+            model_to_use = densenet_model
+            preprocess_func = preprocess_densenet
+            model_name = 'DenseNet201'
+        elif model_choice == 'ResNet152':
+            model_to_use = resnet_model
+            preprocess_func = preprocess_resnet
+            model_name = 'ResNet152'
+
+        if model_to_use:
+            if preprocess_func:
+                with st.spinner(f'Predicting with {model_name}...'):
+                    processed_image_batch = preprocess_func(image_batch)
+                    prediction = model_to_use.predict(processed_image_batch)
+                    predicted_class_index = (prediction > 0.5).astype(int)[0][0]
+                    predicted_class = class_names[predicted_class_index]
+                    confidence = prediction[0][0] if predicted_class_index == 1 else (1 - prediction[0][0])
+
+                st.write(f'### Prediction using {model_name}:')
+                st.success(f'The image is a **{predicted_class.upper()}** with {confidence:.2%} confidence.')
+            else:
+                st.warning("Preprocessing function not defined for the selected model.")
+        else:
+            st.warning(f"The {model_choice} model could not be loaded. Please check the Google Drive ID and ensure the model was saved correctly.")
     else:
-        st.warning(f"The {model_choice} model could not be loaded.")
-else:
-    st.info("Please upload an image.")
+        st.info("Please upload an image to make a prediction.")
+
+elif page == 'Model Comparison':
+    st.header('Model Performance Comparison')
+    if results_df is not None:
+        st.dataframe(results_df.style.highlight_max(subset=['Test Accuracy'], axis=0).highlight_min(subset=['Test Loss'], axis=0))
+        st.write("The table above shows the test loss and accuracy for each model.")
+    else:
+        st.warning("Model comparison results could not be loaded.")
+
+elif page == 'Training History':
+    st.header('Training History (Accuracy and Loss)')
+    if training_histories is not None:
+        for model_name, history_dict in training_histories.items():
+            st.subheader(f'Training History for {model_name}')
+            fig = plot_training_history_st(history_dict, model_name)
+            if fig:
+                st.pyplot(fig)
+            else:
+                st.warning(f"Could not plot history for {model_name}.")
+    else:
+        st.warning("Training histories could not be loaded.")
+
+elif page == 'Confusion Matrices':
+    st.header('Confusion Matrices')
+    if confusion_matrices_data is not None:
+        for model_name, data in confusion_matrices_data.items():
+            st.subheader(f'Confusion Matrix for {model_name}')
+            fig = plot_confusion_matrix_st(data['cm'], data['class_names'], model_name)
+            if fig:
+                st.pyplot(fig)
+            else:
+                st.warning(f"Could not plot confusion matrix for {model_name}.")
+    else:
+        st.warning("Confusion matrices data could not be loaded.")
+
