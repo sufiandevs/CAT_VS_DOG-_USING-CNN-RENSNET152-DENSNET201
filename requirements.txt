@@ -4,4 +4,4 @@ numpy
 Pillow
 gdown
 matplotlib
-keras>=2.16.0
+tf-keras>=2.16.0
