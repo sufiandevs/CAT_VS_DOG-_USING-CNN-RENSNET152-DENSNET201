@@ -1,54 +1,7 @@
-# === FIX: Must be before ANY tensorflow import ===
-import sys
-
-def _patch_keras_3_to_2():
-    """Strip Keras 3.x fields that break Keras 2.x loading"""
-    try:
-        # Patch keras.src.layers.layer.Layer (Keras 3 internal path)
-        from keras.src.layers.layer import Layer
-        _orig_from_config = Layer.from_config
-        
-        @classmethod
-        def _fixed_from_config(cls, config):
-            if isinstance(config, dict):
-                config.pop('quantization_config', None)
-                config.pop('lora_rank', None)
-                # Also fix dtype if it's a dict
-                dtype = config.get('dtype')
-                if isinstance(dtype, dict) and dtype.get('class_name') == 'DTypePolicy':
-                    config['dtype'] = dtype.get('config', {}).get('name', 'float32')
-            return _orig_from_config(config)
-        
-        Layer.from_config = _fixed_from_config
-        print("✅ Patch applied: keras.src.layers.layer.Layer")
-    except Exception as e:
-        print(f"Patch attempt 1: {e}")
-    
-    try:
-        # Also patch tf.keras.layers.Layer as fallback
-        import tensorflow as tf
-        _orig_tf_from_config = tf.keras.layers.Layer.from_config
-        
-        @classmethod
-        def _fixed_tf_from_config(cls, config):
-            if isinstance(config, dict):
-                config.pop('quantization_config', None)
-                config.pop('lora_rank', None)
-                dtype = config.get('dtype')
-                if isinstance(dtype, dict) and dtype.get('class_name') == 'DTypePolicy':
-                    config['dtype'] = dtype.get('config', {}).get('name', 'float32')
-            return _orig_tf_from_config(config)
-        
-        tf.keras.layers.Layer.from_config = _fixed_tf_from_config
-        print("✅ Patch applied: tf.keras.layers.Layer")
-    except Exception as e:
-        print(f"Patch attempt 2: {e}")
-
-_patch_keras_3_to_2()
-# === END FIX ===
-# ... rest of your code exactly as before
 import streamlit as st
 import tensorflow as tf
+from tensorflow.keras import layers, Model
+from tensorflow.keras.applications import DenseNet201, ResNet152
 from PIL import Image
 import numpy as np
 import os
@@ -59,50 +12,95 @@ IMG_HEIGHT = 224
 IMG_WIDTH = 224
 class_names = ['cat', 'dog']
 
-# --- Google Drive File IDs (PASTE YOUR NEW .h5 IDs HERE) ---
+# --- Google Drive File IDs (PASTE YOUR .weights.h5 IDs HERE) ---
 DRIVE_FILE_IDS = {
-    'simple_cnn': '18e6SqmW0ivF9wzKvp-vHH7v60dkFc1Pf',
-    'densenet': '1J2o60_4nPvlhdN5H5yRKTGdfiBhcEisp',
-    'resnet': '18gFrRbQA4NYngKrJtmprA3Dn7TOkmjdj',
+    'simple_cnn': '1g0yR1gNp6ru_YeJSXjOlW2n5H2gouM9p',
+    'densenet': '1w0pXzFVALNRPb3Up79soYJ0EKddaV60S',
+    'resnet': '1QlLMsz4hIpiu5T4Tu3CZCaPG_yncfTAy',
 }
 
 TEMP_MODEL_DIR = 'temp_models'
 os.makedirs(TEMP_MODEL_DIR, exist_ok=True)
 
-# --- Load Models ---
+# --- Build Models from Scratch (No loading .keras or .h5 models) ---
+
+def build_simple_cnn():
+    """Rebuild your Simple CNN architecture exactly as trained"""
+    model = tf.keras.Sequential([
+        layers.Input(shape=(224, 224, 3)),
+        layers.Conv2D(32, (3, 3), activation='relu'),
+        layers.MaxPooling2D((2, 2)),
+        layers.Conv2D(64, (3, 3), activation='relu'),
+        layers.MaxPooling2D((2, 2)),
+        layers.Conv2D(128, (3, 3), activation='relu'),
+        layers.MaxPooling2D((2, 2)),
+        layers.Flatten(),
+        layers.Dense(128, activation='relu'),
+        layers.Dropout(0.5),
+        layers.Dense(1, activation='sigmoid')
+    ])
+    return model
+
+def build_densenet():
+    """Rebuild DenseNet201 architecture exactly as trained"""
+    base_model = DenseNet201(weights=None, include_top=False, input_shape=(224, 224, 3))
+    x = base_model.output
+    x = layers.GlobalAveragePooling2D()(x)
+    x = layers.Dense(128, activation='relu')(x)
+    predictions = layers.Dense(1, activation='sigmoid')(x)
+    model = Model(inputs=base_model.input, outputs=predictions)
+    return model
+
+def build_resnet():
+    """Rebuild ResNet152 architecture exactly as trained"""
+    base_model = ResNet152(weights=None, include_top=False, input_shape=(224, 224, 3))
+    x = base_model.output
+    x = layers.GlobalAveragePooling2D()(x)
+    x = layers.Dense(128, activation='relu')(x)
+    predictions = layers.Dense(1, activation='sigmoid')(x)
+    model = Model(inputs=base_model.input, outputs=predictions)
+    return model
+
+# --- Download and Load Weights ---
+
 @st.cache_resource
-def load_model_from_drive(model_name_key, local_filename):
+def load_model_weights(model_name_key, build_func, weights_filename):
     file_id = DRIVE_FILE_IDS.get(model_name_key)
     if not file_id or file_id.startswith('PASTE'):
         st.error(f"Google Drive File ID for {model_name_key} is not configured.")
         return None
 
-    local_path = os.path.join(TEMP_MODEL_DIR, local_filename)
+    weights_path = os.path.join(TEMP_MODEL_DIR, weights_filename)
 
-    if not os.path.exists(local_path):
-        st.info(f"Downloading {local_filename}...")
+    if not os.path.exists(weights_path):
+        st.info(f"Downloading {weights_filename}...")
         try:
-            gdown.download(f'https://drive.google.com/uc?id={file_id}', local_path, quiet=True)
-            st.success(f"Downloaded {local_filename}.")
+            gdown.download(f'https://drive.google.com/uc?id={file_id}', weights_path, quiet=True)
+            st.success(f"Downloaded {weights_filename}.")
         except Exception as e:
-            st.error(f"Error downloading {local_filename}: {e}")
+            st.error(f"Error downloading {weights_filename}: {e}")
             return None
 
     try:
-        model = tf.keras.models.load_model(local_path)
+        # Build fresh model
+        model = build_func()
+        # Load weights
+        model.load_weights(weights_path)
+        # Compile (needed for predict)
+        model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
         return model
     except Exception as e:
-        st.error(f"Error loading {local_filename}: {e}")
+        st.error(f"Error loading {weights_filename}: {e}")
         return None
 
 def load_simple_cnn_model():
-    return load_model_from_drive('simple_cnn', 'simple_cnn_model.h5')
+    return load_model_weights('simple_cnn', build_simple_cnn, 'simple_cnn_weights.weights.h5')
 
 def load_densenet_model():
-    return load_model_from_drive('densenet', 'densenet201_model.h5')
+    return load_model_weights('densenet', build_densenet, 'densenet201_weights.weights.h5')
 
 def load_resnet_model():
-    return load_model_from_drive('resnet', 'resnet152_model.h5')
+    return load_model_weights('resnet', build_resnet, 'resnet152_weights.weights.h5')
 
 simple_cnn_model = load_simple_cnn_model()
 densenet_model = load_densenet_model()
