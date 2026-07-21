@@ -13,11 +13,11 @@ class_names = ['cat', 'dog'] # Must match the class names used during training
 # --- Google Drive File IDs for Models --- #
 # IMPORTANT: Replace these with your actual Google Drive file IDs.
 # Ensure these files are publicly shareable or accessible via a shared link.
-# To get a file ID: Upload your .h5 model to Google Drive, right-click, 'Get link', and copy the ID part from the URL.
+# To get a file ID: Upload your .keras model to Google Drive, right-click, 'Get link', and copy the ID part from the URL.
 DRIVE_FILE_IDS = {
-    'simple_cnn': '14di2iDCb6uiIwRpPP5wDwc9I4j9YIZgw', # e.g., '1aBcDeFgHiJkLmNoPqRsTuVwXyZ0123'
-    'densenet': '1ZcglayCHXWKGNowdSys6Jq6eM0kQ3Xf9',
-    'resnet': '1Q8kzfu9r0tZMk6jug4COXC6CQLs1BZ6z',
+    'simple_cnn': '10_YJo2G4m_K04pXTawmX0MpuOVuX4MMf', # e.g., '1aBcDeFgHiJkLmNoPqRsTuVwXyZ0123'
+    'densenet': '13_toN-2F7hJiTQBnDSl7KmRlqsDsToQb',
+    'resnet': '1oaHXm0DQqucL8EkWqgL55XqNocwxWY5x',
 }
 
 # Directory to temporarily store downloaded models
@@ -38,7 +38,6 @@ def load_model_from_drive(model_name_key, local_filename):
         st.info(f"Downloading {local_filename} from Google Drive. This may take a moment...")
         try:
             # Use gdown to download the file
-            # Removed fuzzy=True as it might not be supported by older gdown versions
             gdown.download(f'https://drive.google.com/uc?id={file_id}', local_path, quiet=True)
             st.success(f"Downloaded {local_filename}.")
         except Exception as e:
@@ -56,13 +55,13 @@ def load_model_from_drive(model_name_key, local_filename):
 
 # Update loading functions to use the new load_model_from_drive helper
 def load_simple_cnn_model():
-    return load_model_from_drive('simple_cnn', 'simple_cnn_model.h5')
+    return load_model_from_drive('simple_cnn', 'simple_cnn_model.keras') # Changed to .keras extension
 
 def load_densenet_model():
-    return load_model_from_drive('densenet', 'densenet201_model.h5')
+    return load_model_from_drive('densenet', 'densenet201_model.keras') # Changed to .keras extension
 
 def load_resnet_model():
-    return load_model_from_drive('resnet', 'resnet152_model.h5')
+    return load_model_from_drive('resnet', 'resnet152_model.keras') # Changed to .keras extension
 
 simple_cnn_model = load_simple_cnn_model()
 densenet_model = load_densenet_model()
