@@ -8,9 +8,8 @@ import joblib
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-import base64
 
-# --- Page Config with Custom Theme ---
+# --- Page Config ---
 st.set_page_config(
     page_title="Cat vs Dog Classifier",
     page_icon="🐱",
@@ -18,7 +17,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# --- Custom CSS for Colorful 3D-like Styling ---
+# --- Custom CSS: Navy Blue, White, Blue Only ---
 def load_custom_css():
     st.markdown("""
     <style>
@@ -28,26 +27,28 @@ def load_custom_css():
         font-family: 'Poppins', sans-serif;
     }
     
-    /* Animated Gradient Background */
+    /* Animated Gradient: Navy Blue → White → Blue */
     .stApp {
-        background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+        background: linear-gradient(-45deg, #0a192f, #112240, #e6f1ff, #64b5f6, #1e88e5, #0d47a1);
         background-size: 400% 400%;
-        animation: gradientBG 15s ease infinite;
+        animation: gradientBG 12s ease infinite;
     }
     
     @keyframes gradientBG {
         0% { background-position: 0% 50%; }
+        25% { background-position: 50% 50%; }
         50% { background-position: 100% 50%; }
+        75% { background-position: 50% 50%; }
         100% { background-position: 0% 50%; }
     }
     
-    /* Glassmorphism Cards */
+    /* Glassmorphism Cards - Navy tinted */
     .glass-card {
-        background: rgba(255, 255, 255, 0.15);
-        backdrop-filter: blur(10px);
+        background: rgba(10, 25, 47, 0.7);
+        backdrop-filter: blur(12px);
         border-radius: 20px;
-        border: 1px solid rgba(255, 255, 255, 0.3);
-        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        border: 1px solid rgba(100, 181, 246, 0.3);
+        box-shadow: 0 8px 32px 0 rgba(13, 71, 161, 0.4);
         padding: 20px;
         margin: 10px 0;
         transition: all 0.3s ease;
@@ -55,37 +56,37 @@ def load_custom_css():
     
     .glass-card:hover {
         transform: translateY(-5px);
-        box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.5);
+        box-shadow: 0 12px 40px 0 rgba(30, 136, 229, 0.5);
+        border: 1px solid rgba(100, 181, 246, 0.6);
     }
     
-    /* Colorful Animated Title */
-    .rainbow-text {
-        background: linear-gradient(90deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #9400d3);
-        background-size: 200% auto;
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        animation: rainbow 3s linear infinite;
+    /* Title - White with blue glow */
+    .main-title {
+        color: #e6f1ff;
         font-weight: 700;
         font-size: 2.5em;
         text-align: center;
-        text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        text-shadow: 0 0 20px rgba(100, 181, 246, 0.6), 0 0 40px rgba(30, 136, 229, 0.3);
+        letter-spacing: 2px;
     }
     
-    @keyframes rainbow {
-        0% { background-position: 0% 50%; }
-        100% { background-position: 200% 50%; }
+    .subtitle {
+        color: #64b5f6;
+        font-size: 1.2em;
+        text-align: center;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
     }
     
-    /* 3D-like Buttons */
+    /* 3D-like Buttons - Navy Blue theme */
     .stButton>button, div[data-testid="stSelectbox"] > div {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-        color: white !important;
+        background: linear-gradient(135deg, #0d47a1 0%, #1565c0 100%) !important;
+        color: #e6f1ff !important;
         border: none !important;
         border-radius: 50px !important;
         padding: 12px 30px !important;
         font-weight: 600 !important;
-        box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4), 
-                    0 6px 6px rgba(102, 126, 234, 0.3),
+        box-shadow: 0 10px 20px rgba(13, 71, 161, 0.4), 
+                    0 6px 6px rgba(13, 71, 161, 0.3),
                     inset 0 -2px 0 rgba(0,0,0,0.2) !important;
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
         text-transform: uppercase;
@@ -94,28 +95,24 @@ def load_custom_css():
     
     .stButton>button:hover, div[data-testid="stSelectbox"] > div:hover {
         transform: translateY(-3px) scale(1.02) !important;
-        box-shadow: 0 20px 40px rgba(102, 126, 234, 0.5),
-                    0 15px 12px rgba(102, 126, 234, 0.4),
+        box-shadow: 0 20px 40px rgba(30, 136, 229, 0.5),
+                    0 15px 12px rgba(30, 136, 229, 0.4),
                     inset 0 -2px 0 rgba(0,0,0,0.2) !important;
-        background: linear-gradient(135deg, #764ba2 0%, #f093fb 100%) !important;
+        background: linear-gradient(135deg, #1565c0 0%, #42a5f5 100%) !important;
     }
     
     .stButton>button:active {
         transform: translateY(1px) scale(0.98) !important;
     }
     
-    /* Sidebar Styling */
+    /* Sidebar - Dark Navy */
     .css-1d391kg, [data-testid="stSidebar"] {
-        background: linear-gradient(180deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%) !important;
+        background: linear-gradient(180deg, #0a192f 0%, #112240 50%, #0d47a1 100%) !important;
     }
     
-    .css-1d391kg .rainbow-text {
-        font-size: 1.5em;
-    }
-    
-    /* Selectbox Dropdown Styling */
+    /* Selectbox Label */
     div[data-testid="stSelectbox"] label {
-        color: #fff !important;
+        color: #e6f1ff !important;
         font-weight: 600 !important;
         font-size: 1.1em !important;
         text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
@@ -131,22 +128,23 @@ def load_custom_css():
         animation: floatUpload 3s ease-in-out infinite;
     }
     
-    /* Success Message Styling */
+    /* Success Message - Blue theme */
     .stSuccess {
-        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%) !important;
+        background: linear-gradient(135deg, #1565c0 0%, #42a5f5 100%) !important;
         border-radius: 15px !important;
-        border: none !important;
-        box-shadow: 0 10px 30px rgba(56, 239, 125, 0.4) !important;
+        border: 1px solid rgba(100, 181, 246, 0.5) !important;
+        box-shadow: 0 10px 30px rgba(21, 101, 192, 0.4) !important;
     }
     
-    /* Prediction Result Box */
+    /* Prediction Result Box - Navy Blue */
     .prediction-box {
-        background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        background: linear-gradient(135deg, #0d47a1 0%, #1565c0 100%);
         border-radius: 20px;
         padding: 25px;
         text-align: center;
-        box-shadow: 0 15px 35px rgba(250, 112, 154, 0.4);
+        box-shadow: 0 15px 35px rgba(13, 71, 161, 0.5);
         animation: pulse 2s infinite;
+        border: 1px solid rgba(100, 181, 246, 0.4);
     }
     
     @keyframes pulse {
@@ -154,60 +152,75 @@ def load_custom_css():
         50% { transform: scale(1.02); }
     }
     
-    /* Spinner Styling */
+    /* Spinner - Blue */
     .stSpinner > div {
-        border-color: #667eea transparent transparent transparent !important;
+        border-color: #64b5f6 transparent transparent transparent !important;
     }
     
-    /* Table Styling */
+    /* Table Styling - Navy */
     .dataframe {
-        background: rgba(255, 255, 255, 0.1) !important;
+        background: rgba(10, 25, 47, 0.6) !important;
         border-radius: 15px !important;
         overflow: hidden !important;
+        color: #e6f1ff !important;
     }
     
     .dataframe th {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-        color: white !important;
+        background: linear-gradient(135deg, #0d47a1 0%, #1565c0 100%) !important;
+        color: #e6f1ff !important;
+    }
+    
+    .dataframe td {
+        color: #e6f1ff !important;
     }
     
     /* Radio Buttons in Sidebar */
     .stRadio > label {
-        color: #fff !important;
+        color: #e6f1ff !important;
         font-weight: 600 !important;
     }
     
     .stRadio > div {
-        background: rgba(255, 255, 255, 0.1) !important;
+        background: rgba(100, 181, 246, 0.1) !important;
         border-radius: 10px !important;
         padding: 5px !important;
     }
     
-    /* File Uploader Styling */
+    /* File Uploader - Navy theme */
     .stFileUploader > div > div {
-        background: rgba(255, 255, 255, 0.2) !important;
-        border: 2px dashed rgba(255, 255, 255, 0.6) !important;
+        background: rgba(10, 25, 47, 0.5) !important;
+        border: 2px dashed rgba(100, 181, 246, 0.6) !important;
         border-radius: 20px !important;
-        color: white !important;
+        color: #e6f1ff !important;
     }
     
     .stFileUploader > div > div:hover {
-        background: rgba(255, 255, 255, 0.3) !important;
-        border-color: #fff !important;
+        background: rgba(10, 25, 47, 0.7) !important;
+        border-color: #64b5f6 !important;
     }
     
-    /* Scrollbar Styling */
+    /* Scrollbar - Blue */
     ::-webkit-scrollbar {
         width: 10px;
     }
     
     ::-webkit-scrollbar-track {
-        background: rgba(0,0,0,0.1);
+        background: #0a192f;
     }
     
     ::-webkit-scrollbar-thumb {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #1565c0 0%, #42a5f5 100%);
         border-radius: 5px;
+    }
+    
+    /* Subheaders - White */
+    h2, h3, h4 {
+        color: #e6f1ff !important;
+    }
+    
+    /* Paragraph text - Light blue/white */
+    p, div {
+        color: #b0c4de !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -325,9 +338,9 @@ def plot_training_history_st(history_dict, model_name):
     axes[0].set_facecolor('none')
     axes[1].set_facecolor('none')
 
-    axes[0].plot(epochs, hist_df['accuracy'], label='Training Accuracy', color='#667eea', linewidth=2)
+    axes[0].plot(epochs, hist_df['accuracy'], label='Training Accuracy', color='#64b5f6', linewidth=2)
     if 'val_accuracy' in hist_df.columns:
-        axes[0].plot(epochs, hist_df['val_accuracy'], label='Validation Accuracy', color='#f093fb', linewidth=2)
+        axes[0].plot(epochs, hist_df['val_accuracy'], label='Validation Accuracy', color='#90caf9', linewidth=2)
     axes[0].set_title(f'{model_name} Accuracy', color='white', fontweight='bold')
     axes[0].set_xlabel('Epoch', color='white')
     axes[0].set_ylabel('Accuracy', color='white')
@@ -335,9 +348,9 @@ def plot_training_history_st(history_dict, model_name):
     axes[0].tick_params(colors='white')
     axes[0].grid(True, alpha=0.3)
 
-    axes[1].plot(epochs, hist_df['loss'], label='Training Loss', color='#11998e', linewidth=2)
+    axes[1].plot(epochs, hist_df['loss'], label='Training Loss', color='#42a5f5', linewidth=2)
     if 'val_loss' in hist_df.columns:
-        axes[1].plot(epochs, hist_df['val_loss'], label='Validation Loss', color='#38ef7d', linewidth=2)
+        axes[1].plot(epochs, hist_df['val_loss'], label='Validation Loss', color='#90caf9', linewidth=2)
     axes[1].set_title(f'{model_name} Loss', color='white', fontweight='bold')
     axes[1].set_xlabel('Epoch', color='white')
     axes[1].set_ylabel('Loss', color='white')
@@ -357,7 +370,7 @@ def plot_confusion_matrix_st(cm, class_names, model_name):
     fig.patch.set_facecolor('none')
     ax.set_facecolor('none')
     
-    sns.heatmap(cm, annot=True, fmt='d', cmap='coolwarm',
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues',
                 xticklabels=class_names, yticklabels=class_names, ax=ax,
                 annot_kws={'color': 'white', 'fontsize': 12})
     ax.set_title(f'Confusion Matrix - {model_name}', color='white', fontweight='bold', fontsize=14)
@@ -372,8 +385,8 @@ def plot_confusion_matrix_st(cm, class_names, model_name):
 def animated_header():
     st.markdown("""
     <div style="text-align: center; padding: 20px;">
-        <h1 class="rainbow-text">🐱 Cat vs Dog Classifier 🐶</h1>
-        <p style="color: rgba(255,255,255,0.8); font-size: 1.2em; text-shadow: 1px 1px 2px rgba(0,0,0,0.5);">
+        <h1 class="main-title">🐱 Cat vs Dog Classifier 🐶</h1>
+        <p class="subtitle">
             Deep Learning Model Comparison with CNN, DenseNet201 & ResNet152
         </p>
     </div>
@@ -383,7 +396,7 @@ def animated_header():
 animated_header()
 
 st.sidebar.markdown("""
-    <h2 style="color: white; text-align: center; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">
+    <h2 style="color: #e6f1ff; text-align: center; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">
         🧭 Navigation
     </h2>
 """, unsafe_allow_html=True)
@@ -443,11 +456,11 @@ if page == 'Predict Image':
                 
                 st.markdown(f"""
                 <div class="prediction-box">
-                    <h2 style="color: white; margin: 0;">🎉 Result</h2>
-                    <h1 style="color: white; margin: 10px 0; font-size: 2.5em;">
+                    <h2 style="color: #e6f1ff; margin: 0;">🎉 Result</h2>
+                    <h1 style="color: #e6f1ff; margin: 10px 0; font-size: 2.5em;">
                         {predicted_class.upper()}
                     </h1>
-                    <p style="color: rgba(255,255,255,0.9); font-size: 1.3em; margin: 0;">
+                    <p style="color: #64b5f6; font-size: 1.3em; margin: 0;">
                         Confidence: <b>{confidence:.2%}</b>
                     </p>
                 </div>
@@ -466,9 +479,9 @@ elif page == 'Model Comparison':
     if results_df is not None:
         st.dataframe(
             results_df.style
-            .highlight_max(subset=['Test Accuracy'], color='#38ef7d')
-            .highlight_min(subset=['Test Loss'], color='#fa709a')
-            .set_properties(**{'background-color': 'rgba(255,255,255,0.1)', 'color': 'white'})
+            .highlight_max(subset=['Test Accuracy'], color='#1565c0')
+            .highlight_min(subset=['Test Loss'], color='#0d47a1')
+            .set_properties(**{'background-color': 'rgba(10,25,47,0.6)', 'color': '#e6f1ff'})
         )
         st.write("The table above shows the test loss and accuracy for each model.")
     else:
@@ -482,7 +495,7 @@ elif page == 'Training History':
     
     if training_histories is not None:
         for model_name, history_dict in training_histories.items():
-            st.markdown(f'<h4 style="color: white;">{model_name}</h4>', unsafe_allow_html=True)
+            st.markdown(f'<h4 style="color: #e6f1ff;">{model_name}</h4>', unsafe_allow_html=True)
             fig = plot_training_history_st(history_dict, model_name)
             if fig:
                 st.pyplot(fig, transparent=True)
@@ -499,7 +512,7 @@ elif page == 'Confusion Matrices':
     
     if confusion_matrices_data is not None:
         for model_name, data in confusion_matrices_data.items():
-            st.markdown(f'<h4 style="color: white;">{model_name}</h4>', unsafe_allow_html=True)
+            st.markdown(f'<h4 style="color: #e6f1ff;">{model_name}</h4>', unsafe_allow_html=True)
             fig = plot_confusion_matrix_st(data['cm'], data['class_names'], model_name)
             if fig:
                 st.pyplot(fig, transparent=True)
